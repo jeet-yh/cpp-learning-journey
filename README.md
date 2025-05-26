@@ -1,6 +1,4 @@
-# C++ Learning Journey
-
-Hi! I'm jeet-yh, and this is my C++ learning progress .
+# C++ 学习之旅
 
 ## 📚 Learning Path (Planned)
 
