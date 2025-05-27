@@ -12,4 +12,4 @@
 
 | 日期 | 学习内容 | 任务链接 |
 |------|----------|----------|
-| Day01 | 构造函数与拷贝构造 | [day01/student.cpp](./day01/student.cpp) |
+| Day01 | 构造函数与拷贝构造 | [day01/student.cpp](./day01/class.md) |
