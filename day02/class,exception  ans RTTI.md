@@ -316,7 +316,7 @@
             std::cout << "Base" << std::endl;
         }
     };
-    class Test: public Base {//注意：这里不能的private继承
+    class Test: public Base {//注意：这里不能是private继承
                             //否则Base的构造函数对于Test是不可访问的
                             //故无法通过Base *t = new Test();创建对象
     public:
@@ -768,8 +768,19 @@
         std::cout << typeid(*ptr).name() << std::endl; // 输出"4Test"（名称修饰后的）;
     }
     ```
+    - 常用示例
+    ```cpp
+     if(typeid(*p)==typeid(Test))//判断p指向的对象类型是不是Test
+     const std::type_info& ti = typeid(some_obj);
+     std::cout << ti.name();       // 类型名称（编译器相关，有可能是编码的）
+    ```
+
+    - type_info类：存储类型信息（需包含typeinfo头文件）//更多明天补充
+        - 当你使用typeip的时候其实返回的就是一个type_info类
 
     - dynamic_cast运算符:安全向下转型(必须是有虚函数的类)
+    - 指针：不成功返回nullptr，成功则转化为你指定的类型
+    - 引用：不成功抛出std::bad_cast异常，成功则转化为你指定的类型
     ```cpp
     class Base {
     public:
@@ -799,5 +810,50 @@
         test(bb);
     }
     ```
-    - type_info类：存储类型信息（需包含typeinfo头文件）//更多明天补充
-    
+    - static_cast运算符：仅当两个类别可以隐式转化时才可以使用，通常用于低风险转换(不依赖RTTI)
+    ```cpp
+    double d = 3.14;
+    int i = static_cast<int>(d); // 正确，丢失小数部分
+
+    Base* b = new Test();
+    Test* d2 = static_cast<Test*>(b); // 编译通过，需程序员确保b确实指向Test
+    ```
+
+    - const_cast运算符：去除或添加const、volatile限定符的类型转换符
+    ```cpp
+    const_cast<new_type>(expression)
+    ```
+    - 下例会出现未定义行为，因为你试图改变只读内存，危险！
+    ```cpp
+    void modify(int* p) {
+        *p = 100;
+    }
+
+    int main() {
+        const int a = 10;
+        modify(const_cast<int*>(&a)); // ⛔ 未定义行为
+    }
+    ```
+    - 正确使用场景
+    - a是可写的，实际也只写了a的内存
+    ```cpp
+    void modify(int *p) {
+	*p = 100;
+    }
+
+    int main() {
+        int a = 10;
+        const int* p = &a;
+        modify(const_cast<int*>(p));
+    }
+    ```
+    - reinterpret_cast：进行底层强行转换(如指针变证书，函数指针等等)
+    - 最危险的转化方式，慎用！
+    - 绝对不要用在日常对象之间的类型转换！
+
+    ```cpp
+    int a = 65;
+    char* p = reinterpret_cast<char*>(&a); // 将 int* 转换成 char*
+    void (*func)();
+    int* iptr = reinterpret_cast<int*>(func); // 将函数指针转换为整型指针
+    ```

@@ -162,7 +162,7 @@ private:
     private:
         std::string name;
         int age;
-    };
+    };  
 
     std::ostream& operator<<(std::ostream& os, const Person& p) {
         os << "Name: " << p.name << ", Age: " << p.age;
@@ -372,7 +372,7 @@ private:
     ```cpp
     ClassName(const ClassName& other);
     ```
-    - 当你使用对象初始化另一个对象时候，会调用它。实际上的浅拷贝
+    - 当你使用对象初始化另一个对象时候，会调用它。实际上是浅拷贝
     - 注意：若定义了拷贝函数，编译器就不会自动生成默认移动构造函数。
     ```cpp
     class Test {
@@ -419,6 +419,104 @@ private:
         return 0;
     }
     ```
+- 在移动构造函数、移动赋值运算符之前，我们先来简单聊聊左值和右值
+    - 左值
+    - 可以取地址、有名字的对象
+    - 表达式结束后依然在
+    ```cpp
+    int x=10;//x是左值
+    int *p=x;//可以取地址
+    ```
+    - 右值
+    - 临时对象、没有名字、不能取地址
+    - 表达式结束后就被销毁
+    ```cpp
+    int y=x+5;//(x+5)就为右值
+    int z=5;//5是右值常量
+    ```
+    - 为什么要有左值、右值和移动语义？
+    ```cpp
+    std::string a = "hello";
+    std::string b = a;//拷贝构造
+    std::string c = std::move(a); // 不再调用拷贝构造，而是移动构造！
+    ```
+    - 没有移动语义，b=a会拷贝，效率低
+    - 使用移动语义，可以让c偷走a的内存，不需要拷贝，a的内存被偷走后就没有资源了
+    ```cpp
+    std::cout << a << ' ' << b << ' ' << c << std::endl;//输出" hello hello"
+    ```
+    - 右值引用：它只绑定右值
+    ```cpp
+    int&& r = 10;
+    ```
+- 移动构造函数
+    ```cpp
+    class Test {
+    public:
+        Test(Test&& other) noexcept {
+            this->p = other.p;
+            other.p = nullptr; // 原对象不再拥有资源
+        }
+    };
+    ```
+- 移动赋值运算符
+    ```cpp
+    Test& operator=(Test&& other) noexcept {
+        if (this != &other) {
+            delete[] p;
+            p = other.p;
+            other.p = nullptr;
+        }
+        return *this;
+    }
+    ```
+- std::move和std::forward
+    - std::move(x)：将x强制转化为右值引用，它只允许你移动它的资源，并不移动它本身
+    ```cpp
+    std::string s1 = "hello";
+    std::string s2 = std::move(s1); // s1 的资源移动到 s2，s1变成空壳
+    ```
+    - std::forward(x)
+    ```cpp
+    void test(int&& a){}
+    int main(){
+        int a=5;
+        test(a);//报错，只能传入右值
+        test(5);
+    }
+    ```
+    - 转发引用
+    ```cpp
+    template<typename T>
+    void test(T&& a) {}
+    int main() {
+        int a = 5;
+        test(a);
+        test(5);
+        //均不报错，当你在模板函数中写 T&&，这个 && 并不一定是右值引用！
+        //传入&则是左值引用，&&则是右值引用！
+    }
+    ```
+    - 这个机制叫做折叠引用，是左值引用还是右值引用，取决于你传入的值
+    - 而std::forward(x)它能智能判断T值的类别，完美保持左/右值属性
+    ```cpp
+    void print(int& x)       { std::cout << "左值引用\n"; }
+    void print(int&& x)      { std::cout << "右值引用\n"; }
 
-- 移动构造函数(涉及右值引用暂时没学)
-- 移动赋值运算符(涉及右值引用暂时没学)
+    template<typename T>
+    void test(T&& val) {
+        print(std::forward<T>(val));  // 完美转发
+    }
+
+    int main() {
+        int a = 10;
+        test(a);        // 推导为 T = int&，val 是 int&
+        test(20);       // 推导为 T = int，val 是 int&&
+    }
+    ```
+
+- 如果你希望你的对象只能被移动，你可以
+    ```cpp
+    Test(const Test&) = delete;
+    Test& operator=(const Test&) = delete;
+    ```
